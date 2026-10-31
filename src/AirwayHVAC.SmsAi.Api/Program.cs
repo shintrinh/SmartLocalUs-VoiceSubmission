@@ -3,6 +3,8 @@
 //  1. The AiProvider + Meta env mappings added after the AzureOpenAi mappings.
 //  2. Day 5-6 auto-fallback (27/10): the Baseten env mappings added after the
 //     Meta mappings (Baseten:BaseUrl, Baseten:ApiKey, Baseten:Model).
+//     31/10 fix: Baseten:ReasoningEffort mapping added (BASETEN_REASONING_EFFORT);
+//     default is "low" in BasetenOptions.cs, not "minimal".
 //  3. Fireworks tier (30/10): the Fireworks env mappings added after the
 //     Baseten mappings (Fireworks:BaseUrl, Fireworks:ApiKey, Fireworks:Model).
 //  4. Modal tier (30/10): the Modal env mappings added after the
@@ -50,6 +52,7 @@ var host = new HostBuilder()
         AddIfNotEmpty(mappedSettings, "Baseten:BaseUrl", "BASETEN_BASE_URL");
         AddIfNotEmpty(mappedSettings, "Baseten:ApiKey", "BASETEN_API_KEY");
         AddIfNotEmpty(mappedSettings, "Baseten:Model", "BASETEN_MODEL");
+        AddIfNotEmpty(mappedSettings, "Baseten:ReasoningEffort", "BASETEN_REASONING_EFFORT");
 
         AddIfNotEmpty(mappedSettings, "Fireworks:BaseUrl", "FIREWORKS_BASE_URL");
         AddIfNotEmpty(mappedSettings, "Fireworks:ApiKey", "FIREWORKS_API_KEY");

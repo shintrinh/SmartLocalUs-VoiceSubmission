@@ -103,8 +103,17 @@ public sealed class MetaResponder : IAiResponder
 
         using var response = await SendAsync(baseUrl, apiKey, payload, cancellationToken);
         using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
-        var messageElement = document.RootElement
-            .GetProperty("choices")[0]
+        // 31/10/2026: surface truncation explicitly. Reasoning tokens count
+        // against max_completion_tokens, so a "length" finish with empty
+        // content means the reply was cut — the orchestrator then falls back
+        // to the static flow reply, but the log must name the cause.
+        var firstChoice = document.RootElement.GetProperty("choices")[0];
+        if (firstChoice.TryGetProperty("finish_reason", out var finishReason) &&
+            finishReason.GetString() == "length")
+        {
+            _logger?.LogWarning("AI reply truncated (finish_reason=length) for model {Model}; content may be empty and the flow reply will be used", model);
+        }
+        var messageElement = firstChoice
             .GetProperty("message");
 
         if (messageElement.TryGetProperty("tool_calls", out var toolCalls) && toolCalls.GetArrayLength() > 0)

@@ -43,10 +43,17 @@ public sealed class HandleInboundVoiceUseCase
 
         _logger.LogInformation("Inbound voice call started for tenant {TenantId}, call {CallSid}, conversation {ConversationId}", tenant.TenantId, command.CallSid, conversation.Id);
 
+        // 31/10/2026: greeting names the tenant business when known, so a
+        // caller hears the shop they called — not a generic greeting.
+        // Falls back to the previous wording when CompanyName is empty.
+        var greeting = string.IsNullOrWhiteSpace(tenant.CompanyName)
+            ? "Please tell me what issue you are having with your heating or cooling system."
+            : $"Thank you for calling {tenant.CompanyName}. Please tell me what issue you are having with your heating or cooling system.";
+
         return new HandleVoiceResult(
             conversation.Id,
             voiceSession.Id,
-            "Please tell me what issue you are having with your heating or cooling system.",
+            greeting,
             conversation.Stage,
             false,
             false,

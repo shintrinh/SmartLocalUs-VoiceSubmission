@@ -20,7 +20,12 @@ public sealed class BasetenOptions
 
     public string Model { get; init; } = "meta-models/muse-spark-open-1026";
 
-    public string ReasoningEffort { get; init; } = "minimal";
+    // 31/10/2026: default changed from "minimal" to "low" (official Discord
+    // answer confirms "low" is supported on Spark Open via Baseten).
+    // Spark Open via Baseten can return truncated output (finish_reason
+    // "length") even with max_tokens 8192, because reasoning tokens count
+    // against the output cap — "low" reduces that reasoning-token pressure.
+    public string ReasoningEffort { get; init; } = "low";
 
     public int MaxOutputTokens { get; init; } = 1024;
 
