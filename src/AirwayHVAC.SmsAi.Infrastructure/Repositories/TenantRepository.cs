@@ -57,7 +57,9 @@ public sealed class TenantRepository : ITenantRepository
             : new Tenant(
                 doc.Id,
                 doc.TenantId,
-                doc.CompanyName,
+                // Prefer companyName when present; fall back to tenantName,
+                // which is the field real Cosmos tenant documents use.
+                string.IsNullOrWhiteSpace(doc.CompanyName) ? doc.TenantName : doc.CompanyName,
                 doc.PhoneNumber,
                 doc.ServiceArea,
                 doc.Timezone,
