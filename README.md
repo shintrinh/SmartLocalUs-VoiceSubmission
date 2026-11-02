@@ -10,7 +10,7 @@ A voice agent for US local businesses (HVAC example) that answers a missed call,
 2. **Stage machine** (`ConversationFlowEngine`): Issue → Address → Urgency → Appointment → Confirm → Completed. Completed is deterministically gated on all 4 fields (Issue, Address, Urgency, PreferredTime).
 3. **AI reply layer** (`IAiResponder`, `ConversationOrchestrator`): AI reply replaces the static stage reply when available; static replies alone can also complete a call, so flow completion alone is never presented as proof of an AI tier.
 4. **Tool calling**: exactly one tool, `book_appointment` (required: day, service; optional: caller_name, time), exactly one tool round. Any other function name returns `{"status":"unknown_tool"}` and cannot loop, book, or corrupt a lead.
-5. **Human handoff**: handoff keywords (representative / human / agent / operator / person) short-circuit before the orchestrator and return TwiML `<Dial>` to the configured owner number. A real ringing Dial call requires a paid Twilio account with the High Risk:IRSF permission for the destination country; on a trial account that permission cannot be enabled (Twilio error 13227).
+5. **Human handoff**: handoff keywords (representative / human / agent / operator / person) short-circuit before the orchestrator and return TwiML `<Dial>` to the configured owner number. A real ringing, bridged Dial call was proven 02/11/2026 via a verified US number answered through a VoIP app: after "representative", the AI said "Please hold while I connect you to our team", the US number rang, and the answering side said "Hello" in a two-way conversation. That is a US-to-US Dial, the production handoff path to a US shop owner. It does not prove a direct Dial to a Vietnam number, which remains blocked on a trial account by the High Risk:IRSF permission gate (Twilio error 13227); that Vietnam path is not claimed.
 6. **Lead capture** (`LeadService`, dashboard API): a lead is created on turn 1 and enriched progressively as fields are captured; `LeadStatus.Booked` requires Address + PreferredTime. This repo does **not** claim a lead is saved only when all 4 fields are present.
 
 ## What is NOT in this repo
@@ -67,7 +67,7 @@ Judges without Twilio/Cosmos/API accounts can still evaluate the core from this 
 
 ## Demo video
 
-3 minutes, in English (or with English subtitles/transcript). First line discloses pre-existing work: the SMS part predates the window; the call part shown here was built 26 October – 4 November 2026. The handoff shot is included only if a real ringing Dial call passed before filming; otherwise it is cut, never faked.
+3 minutes, in English (or with English subtitles/transcript). First line discloses pre-existing work: the SMS part predates the window; the call part shown here was built 26 October – 4 November 2026. The handoff shot is included because a real ringing Dial call passed 02/11/2026 (see Human handoff above); it is never faked. The demo call is filmed on the trial number with only the trial-message segment at the start cut in editing; the disclosure, greeting, and full real call are kept.
 
 ## Configuration
 
