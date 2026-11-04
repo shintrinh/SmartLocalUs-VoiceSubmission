@@ -50,16 +50,105 @@ Note on Modal: the default Modal endpoint in code is the author's own deployment
 
 ### With your own keys (full live path)
 
-Requirements: .NET SDK 8.0+, Azure Functions Core Tools 4+, a Twilio number, a Cosmos DB account, and API keys for Meta / Baseten / Fireworks / Modal (see `.env.example` — no real values in this repo).
+Requirements: .NET SDK 8.0+, Azure Functions Core Tools 4+, a Twilio number,
+a Cosmos DB account, and API keys for Meta / Baseten / Fireworks / Modal
+(see the sample `local.settings.json` in Configuration below — no real values
+in this repo).
 
 ```bash
 dotnet build AirwayHVAC.SmsAi.sln
-# Run the Functions host, point a Twilio voice webhook at
-# POST /api/webhooks/twilio/voice/inbound, then call the number.
-# Set AI_PROVIDER=Fallback and the provider keys as environment variables.
+cd src/AirwayHVAC.SmsAi.Api
+func start
+# Host: http://localhost:7071
+# Webhook: POST http://localhost:7071/api/webhooks/twilio/voice/inbound
 ```
 
-Warm up the host with a throwaway call first: a cold first turn can exceed Twilio's roughly 15-second voice webhook ceiling (warm gather turns run 5–8 seconds).
+Use one source for each key. The `.env.example` file is only a template of
+environment-variable names; the Functions host does not auto-load a `.env`
+file. Put your own values in `local.settings.json` (git-ignored, never
+commit it) as shown in Configuration, or export them in your shell. Do not
+set the same key in both places with different values: a key already set in
+your shell wins over the same key in `local.settings.json` for the mapped
+keys in `Program.cs` (observed 02/11, when a shell value caused the
+`local.settings.json` value to be skipped).
+
+If `AzureWebJobsStorage` is `UseDevelopmentStorage=true`, start Azurite
+first. Otherwise use a real storage connection string for that key.
+
+Seed one synthetic tenant in Cosmos DB before testing. Database: `hvac-saas`
+(or your `COSMOS_DATABASE`). Containers: `tenants`, `conversations`, `leads`,
+`events`, `voiceSessions`. Tenant document for the `tenants` container:
+
+```json
+{
+  "id": "test-tenant-1",
+  "tenantId": "test-tenant-1",
+  "companyName": "Test HVAC Services",
+  "tenantName": "Test HVAC Services",
+  "phoneNumber": "+15550009999",
+  "serviceArea": "Dallas, Texas",
+  "timezone": "America/Chicago"
+}
+```
+
+Test credentials (sample only, no real values): set
+`TENANT_ROUTING_VERIFICATION_KEY` on the host to your own test value, for
+example `test-verification-key`, and send it back as the `X-Tenant-Key`
+header with `X-Tenant-Id: test-tenant-1`. Without a matching verification
+key the tenant header is rejected. This verified header is the test path;
+do not rely on a default-tenant fallback, because `Program.cs` maps no
+environment variable for `AllowDefaultTenantFallback` and that flag defaults
+to `false`. The `To` number below is only a placeholder in header routing;
+the tenant comes from the verified header, not from `To`.
+
+Inbound call (expect HTTP 200 with a `<Gather>` greeting):
+
+```bash
+curl -X POST http://localhost:7071/api/webhooks/twilio/voice/inbound \
+  -H "X-Tenant-Id: test-tenant-1" \
+  -H "X-Tenant-Key: test-verification-key" \
+  --data-urlencode "From=+15550001111" \
+  --data-urlencode "To=+15550009999" \
+  --data-urlencode "CallSid=CAtest00000000000000000000000000"
+```
+
+Gather turns, same `CallSid` each time (on PowerShell, use `curl.exe`):
+
+```bash
+# Issue -> Address
+curl -X POST http://localhost:7071/api/webhooks/twilio/voice/gather \
+  -H "X-Tenant-Id: test-tenant-1" \
+  -H "X-Tenant-Key: test-verification-key" \
+  --data-urlencode "CallSid=CAtest00000000000000000000000000" \
+  --data-urlencode "SpeechResult=AC not cooling" \
+  --data-urlencode "Confidence=0.95"
+
+# Address -> Urgency: SpeechResult=123 Main St
+# Urgency -> Appointment: SpeechResult=emergency
+# Appointment -> Confirm: SpeechResult=tomorrow 9am
+# Confirm -> Completed: SpeechResult=yes (expect Hangup)
+```
+
+Separate handoff call, new `CallSid` (expect `Dial` to the
+`TWILIO_VOICE_HANDOFF_NUMBER` configured on the host):
+
+```bash
+curl -X POST http://localhost:7071/api/webhooks/twilio/voice/inbound \
+  -H "X-Tenant-Id: test-tenant-1" \
+  -H "X-Tenant-Key: test-verification-key" \
+  --data-urlencode "From=+15550001111" \
+  --data-urlencode "To=+15550009999" \
+  --data-urlencode "CallSid=CAtest00000000000000000000000001"
+curl -X POST http://localhost:7071/api/webhooks/twilio/voice/gather \
+  -H "X-Tenant-Id: test-tenant-1" \
+  -H "X-Tenant-Key: test-verification-key" \
+  --data-urlencode "CallSid=CAtest00000000000000000000000001" \
+  --data-urlencode "SpeechResult=representative" \
+  --data-urlencode "Confidence=0.95"
+```
+
+Warm up the host with a throwaway call first: a cold first turn can exceed
+Twilio's roughly 15-second voice webhook ceiling (warm gather turns run 5–8 seconds).
 
 ### Without external accounts (replay path)
 
@@ -75,4 +164,73 @@ Judges without Twilio/Cosmos/API accounts can still evaluate the core from this 
 
 ## Configuration
 
-Copy `.env.example` to your environment (do not commit real values). Environment variables win over `local.settings.json`. `local.settings.json` is git-ignored and must never contain real keys in a submission.
+Create `src/AirwayHVAC.SmsAi.Api/local.settings.json` from the sample below and
+replace every `replace-with-*` value with a credential from your own test
+account. These are placeholders, not working secrets. Do not commit this file;
+it is git-ignored and must never be added to a submission commit.
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "AI_PROVIDER": "Fallback",
+
+    "TWILIO_SID": "replace-with-twilio-test-account-sid",
+    "TWILIO_TOKEN": "replace-with-twilio-test-auth-token",
+    "TWILIO_NUMBER": "+15005550006",
+    "TWILIO_VOICE_PUBLIC_BASE_URL": "https://replace-with-your-ngrok-host",
+    "TWILIO_VOICE_HANDOFF_NUMBER": "+15551234567",
+    "TWILIO_VOICE_DISCLOSURE_MESSAGE": "This call is handled by an AI assistant.",
+
+    "META_BASE_URL": "https://api.meta.ai/v1",
+    "META_API_KEY": "replace-with-meta-api-key",
+    "META_MODEL": "muse-spark-1.3",
+    "META_REASONING_EFFORT": "minimal",
+
+    "BASETEN_BASE_URL": "https://inference.baseten.co/v1",
+    "BASETEN_API_KEY": "replace-with-baseten-api-key",
+    "BASETEN_MODEL": "meta-models/muse-spark-open-1026",
+    "BASETEN_REASONING_EFFORT": "low",
+
+    "FIREWORKS_BASE_URL": "https://api.fireworks.ai/inference/v1",
+    "FIREWORKS_API_KEY": "replace-with-fireworks-api-key",
+    "FIREWORKS_MODEL": "accounts/fireworks/models/muse-spark-open",
+
+    "MODAL_BASE_URL": "replace-with-modal-openai-compatible-url",
+    "MODAL_PROXY_TOKEN_ID": "replace-with-modal-token-id",
+    "MODAL_PROXY_TOKEN_SECRET": "replace-with-modal-token-secret",
+    "MODAL_MODEL": "meta-models/Muse-Spark-Open-816B-A42B",
+    "MODAL_REASONING_EFFORT": "medium",
+
+    "COSMOS_ENDPOINT": "https://replace-with-account.documents.azure.com:443/",
+    "COSMOS_KEY": "replace-with-cosmos-key",
+    "COSMOS_DATABASE": "hvac-saas",
+
+    "TENANT_ROUTING_VERIFICATION_KEY": "replace-with-local-test-verification-key"
+  }
+}
+```
+
+What each credential group does:
+
+| Group | Purpose |
+|---|---|
+| `AzureWebJobsStorage`, `FUNCTIONS_WORKER_RUNTIME` | Connect the local Functions host to Azurite and select the .NET isolated worker. Start Azurite first when using `UseDevelopmentStorage=true`. |
+| `TWILIO_*` | Authenticate Twilio, identify the voice number, build public callback URLs, and choose the number used for human handoff. Twilio test credentials validate API requests but do not place a real phone call; use a voice-capable account and number for an end-to-end call. |
+| `META_*` | Enable the primary Meta Model API tier. `META_API_KEY` is also the only external credential needed by the live-provider unit test. |
+| `BASETEN_*` | Enable fallback tier 2. `BASETEN_REASONING_EFFORT=low` is the supported local setting for this model. |
+| `FIREWORKS_*` | Enable fallback tier 3. |
+| `MODAL_*` | Enable fallback tier 4 against an OpenAI-compatible Modal deployment; both proxy token values are required. If you leave `MODAL_BASE_URL` blank, the code default (the author's deployment hostname) applies, and the tier fails safely per call without the author's token. |
+| `COSMOS_*` | Connect the app to the database that stores tenants, conversations, leads, events, and voice sessions. |
+| `TENANT_ROUTING_*` | Verify an explicit tenant header (`X-Tenant-Id` + `X-Tenant-Key`). There is no default-tenant fallback in the test path: `AllowDefaultTenantFallback` defaults to `false` and `Program.cs` maps no environment variable for it. |
+
+For tests that do not call an external provider, no real Twilio or Cosmos
+credential is needed. Run them with `dotnet test AirwayHVAC.SmsAi.sln`. To run
+the live Meta test, set `META_API_KEY` (and optionally `META_BASE_URL` and
+`META_MODEL`) in the process, then run:
+
+```bash
+dotnet test AirwayHVAC.SmsAi.sln --filter LiveProvider
+```
