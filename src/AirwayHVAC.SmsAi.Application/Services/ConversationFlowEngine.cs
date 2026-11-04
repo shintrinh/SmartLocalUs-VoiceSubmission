@@ -164,19 +164,43 @@ public sealed class ConversationFlowEngine
 
     private static bool? ParseConfirmation(string text)
     {
-        if (text.Equals("yes", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("y", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("confirm", StringComparison.OrdinalIgnoreCase))
-        {
-            return true;
-        }
+        // Normalize first: drop punctuation so "Yes." / "Yes!" match, and
+        // "that's correct" becomes "thats correct". Check the NO branch
+        // BEFORE the YES branch, otherwise "not correct" would match the
+        // YES branch via "correct".
+        var normalized = new string(text.Where(c => char.IsLetterOrDigit(c) || char.IsWhiteSpace(c)).ToArray())
+            .Trim();
+        var lowered = normalized.ToLowerInvariant();
 
-        if (text.Equals("no", StringComparison.OrdinalIgnoreCase)
-            || text.Equals("n", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("change", StringComparison.OrdinalIgnoreCase)
-            || text.Contains("not correct", StringComparison.OrdinalIgnoreCase))
+        if (lowered.Equals("no", StringComparison.Ordinal)
+            || lowered.Equals("n", StringComparison.Ordinal)
+            || lowered.Contains("not correct", StringComparison.Ordinal)
+            || lowered.Contains("incorrect", StringComparison.Ordinal)
+            || lowered.Contains("not right", StringComparison.Ordinal)
+            || lowered.Contains("change", StringComparison.Ordinal)
+            || lowered.Contains("wrong", StringComparison.Ordinal))
         {
             return false;
+        }
+
+        if (lowered.Equals("yes", StringComparison.Ordinal)
+            || lowered.Equals("y", StringComparison.Ordinal)
+            || lowered.Equals("yeah", StringComparison.Ordinal)
+            || lowered.Equals("yep", StringComparison.Ordinal)
+            || lowered.Equals("sure", StringComparison.Ordinal)
+            || lowered.Equals("ok", StringComparison.Ordinal)
+            || lowered.Equals("okay", StringComparison.Ordinal)
+            || lowered.Equals("correct", StringComparison.Ordinal)
+            || lowered.Equals("right", StringComparison.Ordinal)
+            || lowered.Contains("confirm", StringComparison.Ordinal)
+            || lowered.Contains("correct", StringComparison.Ordinal)
+            || lowered.Contains("thats right", StringComparison.Ordinal)
+            || lowered.Contains("thats correct", StringComparison.Ordinal)
+            || lowered.Contains("sounds good", StringComparison.Ordinal)
+            || lowered.Contains("looks good", StringComparison.Ordinal)
+            || lowered.Contains("all good", StringComparison.Ordinal))
+        {
+            return true;
         }
 
         return null;

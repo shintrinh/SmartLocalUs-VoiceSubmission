@@ -95,7 +95,10 @@ public sealed class HandleVoiceGatherUseCase
     private static bool ShouldHandoff(string text)
         => text.Contains("human", StringComparison.OrdinalIgnoreCase)
            || text.Contains("agent", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("representative", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("represent", StringComparison.OrdinalIgnoreCase)
            || text.Contains("operator", StringComparison.OrdinalIgnoreCase)
-           || text.Contains("person", StringComparison.OrdinalIgnoreCase);
+           || text.Contains("person", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("someone", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("real person", StringComparison.OrdinalIgnoreCase)
+           || text.Contains("live person", StringComparison.OrdinalIgnoreCase);
 }
