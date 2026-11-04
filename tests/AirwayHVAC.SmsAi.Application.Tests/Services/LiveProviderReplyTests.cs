@@ -1,11 +1,9 @@
 // Live-provider tests: the SAME orchestrator path the fake tests proved, but
-// with the REAL providers — Azure OpenAI first, then Meta. No Twilio, no Cosmos,
+// with the REAL Meta provider. No Twilio, no Cosmos,
 // no Functions host: the orchestrator runs in-process against the fake repos,
 // and only the AI call goes to the real API.
 // Each test SKIPS (visibly, via test output) when its credentials are missing,
 // so `dotnet test --filter LiveProvider` is safe to run any time:
-//   - Azure runs when AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY are set
-//     (AZURE_OPENAI_DEPLOYMENT optional, default gpt-6-luna-1).
 //   - Meta runs when META_API_KEY is set
 //     (META_BASE_URL / META_MODEL optional, defaults api.meta.ai/v1 + muse-spark-1.3).
 // The message sent is synthetic ("AC not cooling") — never real customer data,
@@ -50,32 +48,6 @@ public sealed class LiveProviderReplyTests
     public LiveProviderReplyTests(ITestOutputHelper output)
     {
         _output = output;
-    }
-
-    [Fact]
-    public async Task Azure_LiveProvider_RepliesThroughOrchestrator()
-    {
-        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT");
-        var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY");
-        var deployment = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT");
-        if (string.IsNullOrWhiteSpace(endpoint) || string.IsNullOrWhiteSpace(apiKey))
-        {
-            _output.WriteLine("SKIPPED: set AZURE_OPENAI_ENDPOINT + AZURE_OPENAI_API_KEY to run the live Azure test.");
-            return;
-        }
-
-        var provider = new OpenAiResponder(new StaticOptions<AzureOpenAiOptions>(new AzureOpenAiOptions
-        {
-            Endpoint = endpoint,
-            ApiKey = apiKey,
-            DeploymentName = string.IsNullOrWhiteSpace(deployment) ? "gpt-6-luna-1" : deployment
-        }));
-
-        var reply = await RunThroughOrchestrator(provider);
-
-        Assert.False(string.IsNullOrWhiteSpace(reply));
-        Assert.NotEqual(FlowEngineStaticReply, reply);
-        Assert.NotEqual(ProviderMissingKeyFallback, reply);
     }
 
     [Fact]

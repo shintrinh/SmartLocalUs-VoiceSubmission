@@ -1,6 +1,6 @@
 // Repo path: src/AirwayHVAC.SmsAi.Api/Program.cs
 // PATCHED FILE — changes vs the original:
-//  1. The AiProvider + Meta env mappings added after the AzureOpenAi mappings.
+//  1. The AiProvider + Meta env mappings. Azure OpenAI mappings removed 04/11.
 //  2. Day 5-6 auto-fallback (27/10): the Baseten env mappings added after the
 //     Meta mappings (Baseten:BaseUrl, Baseten:ApiKey, Baseten:Model).
 //     31/10 fix: Baseten:ReasoningEffort mapping added (BASETEN_REASONING_EFFORT);
@@ -38,10 +38,6 @@ var host = new HostBuilder()
         AddIfNotEmpty(mappedSettings, "TwilioVoice:PublicBaseUrl", "TWILIO_VOICE_PUBLIC_BASE_URL");
         AddIfNotEmpty(mappedSettings, "TwilioVoice:HumanHandoffPhoneNumber", "TWILIO_VOICE_HANDOFF_NUMBER");
         AddIfNotEmpty(mappedSettings, "TwilioVoice:DisclosureMessage", "TWILIO_VOICE_DISCLOSURE_MESSAGE");
-
-        AddIfNotEmpty(mappedSettings, "AzureOpenAi:Endpoint", "AZURE_OPENAI_ENDPOINT");
-        AddIfNotEmpty(mappedSettings, "AzureOpenAi:ApiKey", "AZURE_OPENAI_KEY");
-        AddIfNotEmpty(mappedSettings, "AzureOpenAi:DeploymentName", "AZURE_OPENAI_DEPLOYMENT");
 
         AddIfNotEmpty(mappedSettings, "AiProvider", "AI_PROVIDER");
         AddIfNotEmpty(mappedSettings, "Meta:BaseUrl", "META_BASE_URL");

@@ -2,14 +2,15 @@
 // PATCHED FILE — changes vs the original:
 //  1. services.Configure<MetaOptions>(...) added next to the other options.
 //  2. IAiResponder registration switches on the "AiProvider" setting:
-//     "Meta" -> MetaResponder, anything else (default) -> OpenAiResponder.
-//     The Azure path is untouched, so SMS keeps working when AiProvider is unset.
+//     "Meta" -> MetaResponder, anything else (default) -> Fallback chain.
+//     No non-Meta model remains in this repo: the Azure OpenAI responder
+//     was removed 04/11, so the default can no longer fall back to Azure.
 //  3. Day 5-6 auto-fallback (27/10): AiProvider "Fallback" registers a
 //     FallbackResponder chain: Meta Model API first, then Baseten
 //     (Muse Spark Open via a MetaResponder bound to the "Baseten" section),
 //     then Fireworks (Muse Spark Open via a MetaResponder bound to the
 //     "Fireworks" section), then Modal (Muse Spark Open via a MetaResponder
-//     bound to the "Modal" section, 30/10). Azure OpenAI is temporarily out
+//     bound to the "Modal" section, 30/10). Azure OpenAI was removed 04/11,
 //     of the chain (30/10): its code and default branch are untouched, so
 //     restoring it is one line in the chain array below.
 //     If Meta throws or returns empty, the chain tries Baseten, then Fireworks,
@@ -37,7 +38,6 @@ public static class ServiceCollectionExtensions
     {
         services.Configure<TwilioOptions>(configuration.GetSection(TwilioOptions.SectionName));
         services.Configure<TwilioVoiceOptions>(configuration.GetSection(TwilioVoiceOptions.SectionName));
-        services.Configure<AzureOpenAiOptions>(configuration.GetSection(AzureOpenAiOptions.SectionName));
         services.Configure<MetaOptions>(configuration.GetSection(MetaOptions.SectionName));
         services.Configure<BasetenOptions>(configuration.GetSection(BasetenOptions.SectionName));
         services.Configure<FireworksOptions>(configuration.GetSection(FireworksOptions.SectionName));
@@ -59,7 +59,7 @@ public static class ServiceCollectionExtensions
         });
 
         var aiProvider = configuration["AiProvider"];
-        if (string.Equals(aiProvider, "Fallback", StringComparison.OrdinalIgnoreCase))
+        if (string.IsNullOrWhiteSpace(aiProvider) || string.Equals(aiProvider, "Fallback", StringComparison.OrdinalIgnoreCase))
         {
             services.AddScoped<MetaResponder>();
             services.AddScoped<IAiResponder>(static serviceProvider =>
@@ -116,7 +116,14 @@ public static class ServiceCollectionExtensions
         }
         else
         {
-            services.AddScoped<IAiResponder, OpenAiResponder>();
+            // Unknown AiProvider values also resolve to the Meta-only
+            // Fallback chain, never to a non-Meta model.
+            services.AddScoped<MetaResponder>();
+            services.AddScoped<IAiResponder>(static serviceProvider =>
+            {
+                var meta = serviceProvider.GetRequiredService<MetaResponder>();
+                return new FallbackResponder([meta], serviceProvider.GetService<ILogger<FallbackResponder>>());
+            });
         }
 
 

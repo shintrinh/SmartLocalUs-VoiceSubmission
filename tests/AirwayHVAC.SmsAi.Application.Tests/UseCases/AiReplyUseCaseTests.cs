@@ -1,7 +1,7 @@
 // Proves the wiring end to end at use-case level, still with no Twilio and no
 // network: the voice Gather loop speaks the AI reply, and the SMS loop sends the
 // AI reply through the outbound service. The fake IAiResponder stands in for
-// Azure OpenAI and for Meta alike — the provider switch lives in DI.
+// Meta tiers alike — the provider switch lives in DI.
 // Conventions mirror the neighbouring test files: Moq for the voice test
 // (like HandleVoiceGatherUseCaseTests), hand-written fakes for the SMS test
 // (like HandleVoiceUseCaseTests).

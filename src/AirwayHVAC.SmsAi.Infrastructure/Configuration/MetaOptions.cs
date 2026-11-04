@@ -1,5 +1,5 @@
 // Repo path: src/AirwayHVAC.SmsAi.Infrastructure/Configuration/MetaOptions.cs
-// NEW FILE — Meta Model API provider options. Mirrors AzureOpenAiOptions shape.
+// NEW FILE — Meta Model API provider options. Meta Model API provider options.
 
 namespace AirwayHVAC.SmsAi.Infrastructure.Configuration;
 

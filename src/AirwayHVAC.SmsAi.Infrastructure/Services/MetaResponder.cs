@@ -1,6 +1,6 @@
 // Repo path: src/AirwayHVAC.SmsAi.Infrastructure/Services/MetaResponder.cs
 // Meta Model API implementation of IAiResponder.
-// Same contract and message shape as OpenAiResponder; only the provider changes.
+// Meta Model API implementation of IAiResponder.
 // Uses plain HttpClient against the OpenAI-compatible endpoint so reasoning_effort
 // is sent explicitly in the JSON body (no dependency on the .NET SDK version's
 // typed reasoning options). No new package reference required.
@@ -66,7 +66,7 @@ public sealed class MetaResponder : IAiResponder
             return "Thanks for contacting us. Please share your address and preferred appointment time.";
         }
 
-        // Message shape mirrors OpenAiResponder exactly: system prompt, tenant
+        // Message shape: system prompt, tenant
         // context, history (customer -> user, otherwise assistant), then inbound.
         var messages = new List<object>
         {
@@ -180,7 +180,7 @@ public sealed class MetaResponder : IAiResponder
         return response;
     }
 
-    // Single tool, shared shape with OpenAiResponder. caller_name is optional
+    // Single tool. caller_name is optional
     // (the customer often books before giving a name); day + service are
     // required so a call always carries a schedulable request.
     private static readonly object[] BookAppointmentTools =

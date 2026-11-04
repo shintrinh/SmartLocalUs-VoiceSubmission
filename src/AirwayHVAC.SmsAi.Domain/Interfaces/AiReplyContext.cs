@@ -68,7 +68,7 @@ public sealed class AiReplyContext
     }
 
     // One system message worth of guidance, shared by both providers so the
-    // stage story is identical on Azure and Meta. Responders add it as a
+    // stage story is identical across Meta tiers. Responders add it as a
     // system message; it is never stored in conversation history.
     public string BuildStageGuidance()
     {

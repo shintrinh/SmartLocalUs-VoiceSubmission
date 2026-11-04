@@ -4,7 +4,7 @@
 // Change vs original (4 hunks):
 //   1. New optional ctor param IAiResponder? aiResponder = null.
 //      Optional so existing manual constructions (incl. tests) keep compiling;
-//      DI injects it because IAiResponder is registered (Meta or Azure by AI_PROVIDER).
+//      DI injects it because IAiResponder is registered (Meta-only Fallback chain by AI_PROVIDER).
 //   2. New field _aiResponder.
 //   3. In ProcessCustomerMessageAsync, BOTH channels: try IAiResponder for the
 //      reply text; on empty reply or exception, fall back to the flow-engine reply.
@@ -16,15 +16,16 @@
 //      instead of diverging from the stage machine. The context is built from
 //      the conversation object only — no new data source, no history pollution
 //      (the guidance lives in the provider request, not in stored messages).
-// Sequence per Alen 27/10: Azure first (AI_PROVIDER unset -> OpenAiResponder,
-// his original design restored), then Meta (AI_PROVIDER=Meta -> MetaResponder).
+// Sequence (updated 04/11): Meta-only Fallback chain by default
+// (AI_PROVIDER unset -> Fallback chain, AI_PROVIDER=Meta -> MetaResponder).
+// The Azure OpenAI responder was removed from this repo on 04/11.
 // SMS is Alen's MVP with no real customers running, so wiring both channels now
 // is safe — no live-customer behavior change, no real customer data at stake.
 // Why this file: IAiResponder had NO production caller (verified 27/10 via code
-// search: GenerateHvacResponseAsync appears only in the interface + OpenAiResponder).
+// search: GenerateHvacResponseAsync appears only in the interface + MetaResponder).
 // Both SMS and voice replies came from ConversationFlowEngine static replies, so the
 // Day-0 provider swap alone changes no live reply. This wiring is what actually
-// connects the providers (Azure first, then Meta) to the product.
+// connects the Meta providers to the product.
 
 using AirwayHVAC.SmsAi.Domain.Enums;
 using AirwayHVAC.SmsAi.Domain.Interfaces;
@@ -80,7 +81,7 @@ public sealed class ConversationOrchestrator
         // AI provider when one is wired in. The customer message was already
         // appended above, so conversation.Messages is the history IAiResponder
         // expects (customer -> user, ai -> assistant). Provider sequence:
-        // AI_PROVIDER unset -> Azure OpenAiResponder (Alen's original design);
+        // AI_PROVIDER unset -> Meta-only Fallback chain;
         // AI_PROVIDER=Meta -> MetaResponder. SMS is MVP with no real customers,
         // so wiring it now carries no live-customer risk.
         // Day 3-4: the flow engine already ran, so conversation.Stage and the

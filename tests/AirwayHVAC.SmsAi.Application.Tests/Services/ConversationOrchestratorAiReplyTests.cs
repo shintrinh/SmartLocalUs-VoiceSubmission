@@ -1,6 +1,6 @@
 // Proves the Day 1-2 wiring: ConversationOrchestrator routes the reply text
 // through IAiResponder when one is injected, on BOTH channels, while the flow
-// engine still drives stage/lead/events. A fake IAiResponder stands in for Azure
+// engine still drives stage/lead/events. A fake IAiResponder stands in for the Meta chain
 // OpenAI and for Meta alike — the wiring is provider-agnostic by construction
 // (the provider switch lives in DI, not in this class).
 // Conventions mirror HandleVoiceUseCaseTests: xUnit, hand-written fakes,
